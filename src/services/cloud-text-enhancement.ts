@@ -1,5 +1,6 @@
 import { Logger } from '../core/logger';
 import { AppSettingsService } from './app-settings-service';
+import { emailFormattingPrompt, dictationPrompt } from '../prompts/prompts';
 
 interface TextEnhancementRequest {
   text: string;
@@ -202,17 +203,17 @@ export class CloudTextEnhancementService {
    * Build the formatting prompt based on context
    */
   private static buildFormattingPrompt(text: string, context: { type: string; activeApp: string }): string {
-    const basePrompt = `Fix any grammar, punctuation, and capitalization in this transcribed speech. Keep the meaning exactly the same. Only output the corrected text, nothing else.`;
-    
     if (context.type === 'email') {
-      return `${basePrompt} This is for an email.\n\nText: ${text}`;
+      // Use full email formatting prompt with newlines, self-correction, etc.
+      return `${emailFormattingPrompt}\n\n===USER_SPEECH_START===\n${text}\n===USER_SPEECH_END===\n\nRespond with ONLY the formatted email text. No explanations, no JSON, just the formatted text with proper line breaks.`;
     } else if (context.type === 'code') {
-      return `${basePrompt} This is for a code comment or documentation.\n\nText: ${text}`;
+      return `${dictationPrompt}\n\nThis is for a code comment or documentation. Fix grammar and formatting.\n\nText: ${text}\n\nRespond with ONLY the corrected text, nothing else.`;
     } else if (context.type === 'chat') {
-      return `${basePrompt} This is for a chat message, keep it casual.\n\nText: ${text}`;
+      return `${dictationPrompt}\n\nThis is for a chat message, keep it casual.\n\nText: ${text}\n\nRespond with ONLY the corrected text, nothing else.`;
     }
     
-    return `${basePrompt}\n\nText: ${text}`;
+    // Default dictation prompt
+    return `${dictationPrompt}\n\nText: ${text}\n\nRespond with ONLY the corrected text, nothing else.`;
   }
 
   /**

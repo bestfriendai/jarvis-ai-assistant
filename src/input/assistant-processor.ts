@@ -24,14 +24,15 @@ export class AssistantProcessor {
     appContext: AppContext
   ): Promise<{ text: string; isAssistant: boolean }> {
 
-    // 1. EXPLICIT JARVIS KEYWORD DETECTION (first 2-3 words only)
-    // Only trigger when Jarvis appears in the first 2-3 words to avoid dictation conflicts
-    const words = transcriptText.trim().split(/\s+/);
-    const firstThreeWords = words.slice(0, 3).join(' ').toLowerCase();
+    // 1. EXPLICIT JARVIS KEYWORD DETECTION (first few words)
+    // More robust pattern that handles commas, periods, and various spacings
+    const normalizedText = transcriptText.trim().toLowerCase();
+    const firstPart = normalizedText.slice(0, 50); // Check first 50 chars for jarvis keyword
     
+    // More flexible patterns to catch various transcription formats
     const hasJarvisKeyword = 
-      /\b(hey\s+jarvis|hi\s+jarvis|okay\s+jarvis)\b/i.test(firstThreeWords) ||
-      /^jarvis\b/i.test(firstThreeWords);
+      /^(hey|hi|okay|ok)[\s,.\-]*jarvis/i.test(firstPart) ||  // "hey jarvis", "hey, jarvis", "hey. jarvis"
+      /^jarvis[\s,.\-]/i.test(firstPart);  // "jarvis, can you..."
     
     // 2. STRICT DICTATION MODE ENFORCEMENT
     // Ensure we're extremely conservative about triggering assistant mode
