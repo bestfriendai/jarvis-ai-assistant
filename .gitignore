@@ -98,3 +98,15 @@ deploy-info.json
 
 # Notarization scripts
 notarize-*.sh
+
+# Additional ignores  
+bin/
+
+# Build folder (node-gyp generated - regenerated on npm install)
+build/
+
+# Scripts folder - ignore .env.signing but keep scripts
+scripts/notarization/.env.signing
+scripts/notarization/*.log
+scripts/*
+build/*
