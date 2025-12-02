@@ -44,11 +44,10 @@
 ### 📧 Quick Demo: Dictating an Email
 
 <p align="center">
-  <a href="https://github.com/akshayaggarwal99/jarvis-ai-assistant/raw/main/assets/demo-video/email_demo_trimmed.mp4">
-    <img src="assets/demo-thumbnail.png" alt="Watch Demo" width="600"/>
-  </a>
+
+https://github.com/user-attachments/assets/763ea6aa-87d5-4e0a-9f05-a2bdaa82f40f
+
 </p>
-<p align="center"><em>👆 Click to watch the demo video</em></p>
 
 > *Hold Fn → Speak → Release → Text appears instantly!*
 
@@ -56,7 +55,7 @@
 
 ## 💡 Why Jarvis?
 
-**Fun fact:** [Wispr Flow](https://wispr.com) recently raised **$81 million** to build a voice dictation tool. I built Jarvis in my spare time and decided to **open-source it for everyone**. 🎉
+**Fun fact:** [Wispr Flow](https://wisprflow.ai/) recently raised **$81 million** to build a voice dictation tool. I built Jarvis in my spare time and decided to **open-source it for everyone**. 🎉
 
 ### 💸 Use Jarvis Completely FREE
 
