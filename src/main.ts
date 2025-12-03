@@ -214,6 +214,8 @@ function createSuggestionWindow() {
 
 function createWaveformWindow() {
   waveformWindow = windowManager.createWaveformWindow();
+  // Pass waveform window reference to SettingsIPCHandlers for show/hide control
+  SettingsIPCHandlers.getInstance().setWaveformWindow(waveformWindow);
 }
 
 function createDashboardWindow() {
@@ -894,8 +896,17 @@ async function handleHotkeyDown() {
   Logger.debug(`⚡ [TIMING] Before UI feedback: ${(beforeUITime - keyDownStartTime).toFixed(2)}ms`);
   
   // ⚡ INSTANT UI UPDATE - Multiple channels for immediate feedback
+  // Check if waveform should be shown based on user settings
+  const currentAppSettings = AppSettingsService.getInstance().getSettings();
+  const shouldShowWaveform = currentAppSettings.showWaveform !== false;
+  
   if (waveformWindow && !waveformWindow.isDestroyed()) {
-    // Send to waveform window first (primary UI)
+    // Only show waveform if setting allows it
+    if (shouldShowWaveform) {
+      waveformWindow.show();
+    }
+    
+    // Send to waveform window first (primary UI) - even if hidden, for audio feedback
     waveformWindow.webContents.send('push-to-talk-start');
     
     // ⚡ INSTANT MICROPHONE STATUS - Send recording status immediately
@@ -1013,6 +1024,11 @@ async function handleHotkeyDown() {
       (pushToTalkService as any).isHandsFreeMode = true;
     }
     
+    // Show waveform if setting allows
+    const handsFreeSettings = AppSettingsService.getInstance().getSettings();
+    if (handsFreeSettings.showWaveform !== false && waveformWindow && !waveformWindow.isDestroyed()) {
+      waveformWindow.show();
+    }
     waveformWindow?.webContents.send('dictation-start');
     lastFnKeyTime = 0; // Reset to prevent triple-tap issues
     
@@ -1100,6 +1116,11 @@ async function handleHotkeyDown() {
     const beforeUITime = performance.now();
     Logger.debug(`⚡ [TIMING] Before UI feedback: ${(beforeUITime - keyDownStartTime).toFixed(2)}ms`);
     
+    // Show waveform if setting allows
+    const singleTapSettings = AppSettingsService.getInstance().getSettings();
+    if (singleTapSettings.showWaveform !== false && waveformWindow && !waveformWindow.isDestroyed()) {
+      waveformWindow.show();
+    }
     waveformWindow?.webContents.send('push-to-talk-start');
     
     const afterUITime = performance.now();

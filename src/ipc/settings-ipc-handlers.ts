@@ -99,6 +99,13 @@ export class SettingsIPCHandlers {
           this.restartHotkeyMonitoring();
         }
         
+        // Handle showWaveform changes - hide waveform window immediately when disabled
+        if (settings.showWaveform !== undefined && !settings.showWaveform) {
+          if (this.waveformWindow && !this.waveformWindow.isDestroyed()) {
+            this.waveformWindow.hide();
+          }
+        }
+        
         return true;
       } catch (error) {
         Logger.error('[SettingsIPC] Failed to update app settings:', error);
@@ -147,15 +154,10 @@ export class SettingsIPCHandlers {
           this.restartHotkeyMonitoring(250);
         }
         
-        // Handle showWaveform changes - show/hide waveform window immediately
-        if ('showWaveform' in updates) {
+        // Handle showWaveform changes - hide waveform window immediately when disabled
+        if ('showWaveform' in updates && !updates.showWaveform) {
           if (this.waveformWindow && !this.waveformWindow.isDestroyed()) {
-            if (updates.showWaveform) {
-              Logger.info('[SettingsIPC] Waveform enabled - window will show on next recording');
-            } else {
-              this.waveformWindow.hide();
-              Logger.info('[SettingsIPC] Waveform disabled - window hidden');
-            }
+            this.waveformWindow.hide();
           }
         }
         

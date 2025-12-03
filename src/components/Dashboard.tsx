@@ -48,6 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preloadedData }) => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentHotkey, setCurrentHotkey] = useState('fn'); // Default to 'fn'
+  const [userName, setUserName] = useState(''); // User's name from settings
 
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryEntry[]>([]);
@@ -150,9 +151,9 @@ const Dashboard: React.FC<DashboardProps> = ({ preloadedData }) => {
     // but that's okay since the listener will be cleaned up when the window closes
   }, [user?.uid, stats]); // Re-run when user changes or stats are initialized
 
-  // Load hotkey settings
+  // Load hotkey settings and user name
   useEffect(() => {
-    const loadHotkeySettings = async () => {
+    const loadSettings = async () => {
       try {
         const electronAPI = (window as any).electronAPI;
         if (electronAPI?.appGetSettings) {
@@ -160,14 +161,17 @@ const Dashboard: React.FC<DashboardProps> = ({ preloadedData }) => {
           if (appSettings?.hotkey) {
             setCurrentHotkey(appSettings.hotkey);
           }
+          if (appSettings?.userName) {
+            setUserName(appSettings.userName);
+          }
         }
       } catch (error) {
-        console.error('Failed to load hotkey settings:', error);
-        // Keep default 'fn' on error
+        console.error('Failed to load settings:', error);
+        // Keep defaults on error
       }
     };
 
-    loadHotkeySettings();
+    loadSettings();
   }, []); // Load once on component mount
 
   // Update system IPC listeners
@@ -396,6 +400,10 @@ const Dashboard: React.FC<DashboardProps> = ({ preloadedData }) => {
 
   // Get user's first name for personalization
   const getUserFirstName = () => {
+    // Priority: userName from settings > displayName from auth > 'there'
+    if (userName) {
+      return userName.split(' ')[0];
+    }
     if (user?.displayName) {
       const firstName = user.displayName.split(' ')[0];
       return firstName;

@@ -286,11 +286,16 @@ const Settings: React.FC = () => {
     try {
       setIsSaving(true);
       const newValue = !showWaveform;
+      console.log(`[Settings] Toggling showWaveform from ${showWaveform} to ${newValue}`);
       const electronAPI = (window as any).electronAPI;
       
       if (electronAPI && electronAPI.appUpdateSettings) {
+        console.log('[Settings] Calling appUpdateSettings with showWaveform:', newValue);
         await electronAPI.appUpdateSettings({ showWaveform: newValue });
         setShowWaveform(newValue);
+        console.log('[Settings] showWaveform updated successfully');
+      } else {
+        console.error('[Settings] electronAPI.appUpdateSettings not available');
       }
     } catch (error) {
       console.error('Failed to update waveform settings:', error);
