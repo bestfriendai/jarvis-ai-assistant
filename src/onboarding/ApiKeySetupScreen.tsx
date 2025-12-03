@@ -16,12 +16,15 @@ const ApiKeySetupScreen: React.FC<ApiKeySetupScreenProps> = ({ onNext, onApiKeys
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [hasExistingKeys, setHasExistingKeys] = useState(false);
+  const [useLocalModel, setUseLocalModel] = useState(false);
 
-  // Load existing keys on mount
+  // Load existing keys and settings on mount
   useEffect(() => {
-    const loadKeys = async () => {
+    const loadKeysAndSettings = async () => {
       try {
         const electronAPI = (window as any).electronAPI;
+        
+        // Load API keys
         if (electronAPI?.getApiKeys) {
           const keys = await electronAPI.getApiKeys();
           if (keys) {
@@ -39,11 +42,19 @@ const ApiKeySetupScreen: React.FC<ApiKeySetupScreenProps> = ({ onNext, onApiKeys
             }
           }
         }
+        
+        // Load app settings to check if local whisper is enabled
+        if (electronAPI?.appGetSettings) {
+          const settings = await electronAPI.appGetSettings();
+          if (settings?.useLocalWhisper) {
+            setUseLocalModel(true);
+          }
+        }
       } catch (error) {
         console.error('Failed to load API keys:', error);
       }
     };
-    loadKeys();
+    loadKeysAndSettings();
   }, []);
 
   // Notify parent when keys change
@@ -86,6 +97,19 @@ const ApiKeySetupScreen: React.FC<ApiKeySetupScreenProps> = ({ onNext, onApiKeys
 
   const hasAtLeastOneKey = openaiKey.trim().length > 0 || deepgramKey.trim().length > 0 || geminiKey.trim().length > 0;
 
+  const handleUseLocalModel = async () => {
+    try {
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.appUpdateSettings) {
+        await electronAPI.appUpdateSettings({ useLocalWhisper: true });
+        setUseLocalModel(true);
+        onApiKeysChange?.(true); // Allow continuing
+      }
+    } catch (error) {
+      console.error('Failed to enable local model:', error);
+    }
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto px-6">
       {/* Header */}
@@ -95,10 +119,54 @@ const ApiKeySetupScreen: React.FC<ApiKeySetupScreenProps> = ({ onNext, onApiKeys
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
           </svg>
         </div>
-        <h1 className={`text-2xl font-semibold ${theme.text.primary} mb-3`}>Set Up API Keys</h1>
+        <h1 className={`text-2xl font-semibold ${theme.text.primary} mb-3`}>Set Up Transcription</h1>
         <p className={`text-sm ${theme.text.secondary} max-w-md mx-auto font-normal leading-relaxed`}>
-          Jarvis needs API keys to transcribe your voice. Your keys are stored locally and never leave your device.
+          Choose how Jarvis transcribes your voice. You can use cloud APIs for speed or run everything locally for privacy.
         </p>
+      </div>
+
+      {/* Local Model Option */}
+      <div className={`${theme.glass.primary} ${theme.radius.xl} p-5 ${theme.shadow} mb-4 border ${useLocalModel ? 'border-green-500/30' : 'border-white/10'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-purple-500/20">
+              <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className={`text-sm font-medium ${theme.text.primary} mb-0.5`}>Use Local Whisper Model</h3>
+              <p className={`text-xs ${theme.text.tertiary}`}>
+                100% offline, no API keys needed. Runs on your Mac.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleUseLocalModel}
+            disabled={useLocalModel}
+            className={`px-4 py-2 rounded-lg font-medium transition-all text-xs ${
+              useLocalModel
+                ? 'bg-green-500/20 border border-green-500/30 text-green-300 cursor-default'
+                : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+            }`}
+          >
+            {useLocalModel ? (
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Enabled
+              </span>
+            ) : 'Use Local'}
+          </button>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="flex-1 h-px bg-white/10"></div>
+        <span className={`text-xs ${theme.text.tertiary}`}>or use cloud APIs for faster transcription</span>
+        <div className="flex-1 h-px bg-white/10"></div>
       </div>
 
       {/* API Key inputs */}
@@ -247,22 +315,25 @@ const ApiKeySetupScreen: React.FC<ApiKeySetupScreenProps> = ({ onNext, onApiKeys
             </svg>
           </div>
           <div>
-            <h4 className={`text-sm font-medium ${theme.text.primary} mb-1`}>Why do I need API keys?</h4>
+            <h4 className={`text-sm font-medium ${theme.text.primary} mb-1`}>Local vs Cloud</h4>
             <p className={`text-xs ${theme.text.tertiary} leading-relaxed`}>
-              Jarvis is fully open-source and runs locally on your Mac. API keys let you use your own accounts with OpenAI or Deepgram for voice transcription. We recommend Deepgram for the fastest experience.
+              <strong>Local Whisper:</strong> 100% private, works offline. Best for privacy-focused users.<br/>
+              <strong>Cloud APIs:</strong> Faster transcription with Deepgram or OpenAI. Your keys are stored locally and never shared.
             </p>
           </div>
         </div>
       </div>
 
       {/* Status */}
-      {hasExistingKeys && (
+      {(hasExistingKeys || useLocalModel) && (
         <div className="mt-4 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-lg border border-green-500/20">
             <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className={`text-sm ${theme.text.primary}`}>API keys configured</span>
+            <span className={`text-sm ${theme.text.primary}`}>
+              {useLocalModel ? 'Local Whisper enabled' : 'API keys configured'}
+            </span>
           </div>
         </div>
       )}

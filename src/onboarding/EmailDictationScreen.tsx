@@ -155,13 +155,25 @@ const EmailDictationScreen: React.FC<EmailDictationScreenProps> = ({ onNext }) =
       });
     }
     
-    // Get user auth state to display correct name
+    // Get user name from app settings first (set during onboarding)
+    if (electronAPI?.appGetSettings) {
+      electronAPI.appGetSettings().then((settings: any) => {
+        if (settings?.userName) {
+          setUserName(settings.userName);
+        }
+      }).catch(() => {
+        // Silent fail
+      });
+    }
+    
+    // Fallback: Get user auth state to display correct name
     if (electronAPI?.loadAuthState) {
       electronAPI.loadAuthState().then((authState: any) => {
         if (authState?.displayName) {
           // Extract first name from display name for personalization
           const firstName = authState.displayName.split(' ')[0];
-          setUserName(firstName);
+          // Only set if not already set from app settings
+          setUserName(prev => prev || firstName);
         }
       }).catch(() => {
         // Silent fail if no auth state

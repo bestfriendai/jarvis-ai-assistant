@@ -14,12 +14,74 @@ interface OnboardingStep {
     onPermissionsChange?: (allGranted: boolean) => void;
     onCorePermissionsChange?: (coreGranted: boolean) => void;
     onApiKeysChange?: (hasKeys: boolean) => void;
+    onNameChange?: (name: string) => void;
   }>;
 }
 
-const WelcomeScreen: React.FC<{ onNext: () => void }> = ({ onNext }) => {
+interface WelcomeScreenProps {
+  onNext: () => void;
+  onNameChange?: (name: string) => void;
+}
+
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onNameChange }) => {
   const { user } = useAuth();
-  const userName = user?.displayName?.split(' ')[0] || 'there';
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Load existing name on mount
+  useEffect(() => {
+    const loadName = async () => {
+      try {
+        const electronAPI = (window as any).electronAPI;
+        if (electronAPI?.appGetSettings) {
+          const settings = await electronAPI.appGetSettings();
+          if (settings?.userName) {
+            setName(settings.userName);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load user name:', error);
+      }
+    };
+    loadName();
+  }, []);
+
+  // Auto-fill from auth if available
+  useEffect(() => {
+    if (user?.displayName && !name) {
+      const firstName = user.displayName.split(' ')[0];
+      setName(firstName);
+    }
+  }, [user, name]);
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    onNameChange?.(newName);
+  };
+
+  const handleSaveName = async () => {
+    if (!name.trim()) return;
+    
+    setSaving(true);
+    try {
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.appUpdateSettings) {
+        await electronAPI.appUpdateSettings({ userName: name.trim() });
+      }
+    } catch (error) {
+      console.error('Failed to save name:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save name when it changes (debounced via blur)
+  const handleBlur = () => {
+    if (name.trim()) {
+      handleSaveName();
+    }
+  };
   
   return (
     <div className="w-full max-w-2xl text-center mx-auto px-6">
@@ -33,11 +95,30 @@ const WelcomeScreen: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       
       {/* Voice mode inspired welcome text */}
       <h1 className={`text-2xl font-semibold ${theme.text.primary} mb-3`}>
-        Welcome to Jarvis, {userName}!
+        Welcome to Jarvis!
       </h1>
-      <p className={`text-sm ${theme.text.secondary} max-w-sm mx-auto font-normal leading-relaxed`}>
+      <p className={`text-sm ${theme.text.secondary} max-w-sm mx-auto font-normal leading-relaxed mb-8`}>
         Voice control for your computer. Dictate 4x faster than typing—no training, no setup required.
       </p>
+
+      {/* Name input */}
+      <div className={`${theme.glass.primary} ${theme.radius.xl} p-6 ${theme.shadow} max-w-sm mx-auto`}>
+        <label className={`block text-sm font-medium ${theme.text.primary} mb-2 text-left`}>
+          What should I call you?
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={handleNameChange}
+          onBlur={handleBlur}
+          placeholder="Enter your name"
+          className="w-full bg-black/40 rounded-xl px-4 py-3 text-white placeholder-white/40 border border-white/20 focus:border-white/40 focus:outline-none transition-colors text-sm"
+          autoFocus
+        />
+        <p className={`text-xs ${theme.text.tertiary} mt-2 text-left`}>
+          This is used to personalize your experience
+        </p>
+      </div>
     </div>
   );
 };
@@ -313,8 +394,27 @@ const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) =>
   const [allPermissionsGranted, setAllPermissionsGranted] = useState(false);
   const [corePermissionsGranted, setCorePermissionsGranted] = useState(false);
   const [hasApiKeys, setHasApiKeys] = useState(false);
+  const [userName, setUserName] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { user, loading } = useAuth();
+
+  // Load existing userName on mount
+  useEffect(() => {
+    const loadUserName = async () => {
+      try {
+        const electronAPI = (window as any).electronAPI;
+        if (electronAPI?.appGetSettings) {
+          const settings = await electronAPI.appGetSettings();
+          if (settings?.userName) {
+            setUserName(settings.userName);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load user name:', error);
+      }
+    };
+    loadUserName();
+  }, []);
 
   const steps: OnboardingStep[] = [
     { id: 'welcome', component: WelcomeScreen },
@@ -350,8 +450,13 @@ const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) =>
   };
 
   const canContinue = () => {
-    if (currentStep === 1) { // API Keys step (index 1)
-      return hasApiKeys;
+    // Welcome step - require a name
+    if (currentStep === 0) {
+      return userName.trim().length > 0;
+    }
+    // API Keys step - always allow continuing (user can use local model)
+    if (currentStep === 1) {
+      return true;
     }
     if (currentStep === 3) { // Permissions step (index 3)
       // Only require microphone and accessibility - notifications are optional
@@ -389,6 +494,7 @@ const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) =>
             onPermissionsChange={setAllPermissionsGranted}
             onCorePermissionsChange={setCorePermissionsGranted}
             onApiKeysChange={setHasApiKeys}
+            onNameChange={setUserName}
           />
         </div>
       </div>
