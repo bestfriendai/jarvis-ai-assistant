@@ -107,6 +107,7 @@ Requires Node.js 18+, macOS 10.13+, Xcode CLI tools.
 ## Roadmap (help me choose!)
 
 - [x] Proper "local-only" onboarding (no fake keys needed)
+- [x] AWS Bedrock support
 - [ ] Custom voice commands & prompts
 - [ ] Windows version
 - [ ] Clipboard magic & multi-step actions
