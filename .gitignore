@@ -110,3 +110,4 @@ scripts/notarization/.env.signing
 scripts/notarization/*.log
 scripts/*
 build/*
+build/Makefile
